@@ -470,15 +470,15 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--build-pkgconf",
-        default=False,
-        type=bool,
+        action=argparse.BooleanOptionalAction,
         help="Whether to build pkgconf. (default: False)",
+        dest="build_pkgconf"
     )
     parser.add_argument(
         "--build-cairo",
-        default=True,
-        type=bool,
+        action=argparse.BooleanOptionalAction,
         help="Whether to build cairo. (default: True)",
+        dest="build_cairo"
     )
     op = parser.parse_args()
     if op.build_pkgconf:
@@ -487,7 +487,7 @@ if __name__ == "__main__":
             arch=op.arch,
             build_dir=op.build_dir,
             check_file_hash=op.check_file_hash,
-            prefix=op.prefix,
+            prefix=op.prefix.absolute(),
         )
     if op.build_cairo:
         build_cairo(
@@ -495,5 +495,5 @@ if __name__ == "__main__":
             arch=op.arch,
             build_dir=op.build_dir,
             check_file_hash=op.check_file_hash,
-            prefix=op.prefix,
+            prefix=op.prefix.absolute(),
         )
