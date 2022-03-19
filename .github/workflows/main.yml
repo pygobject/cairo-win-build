@@ -1,0 +1,29 @@
+name: Build Cairo
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+      - name: Build Cairo
+        run: python build-cairo.py --prefix="./prefix-cairo"
+      - name: Build pkgconf
+        run: python build-cairo.py --prefix="./prefix-pkgconf" --build-pkgconf=True
+      - uses: actions/upload-artifact@v3
+        with:
+          name: cairo-build
+          path: prefix-cairo/
+      - uses: actions/upload-artifact@v3
+        with:
+          name: pkgconf-build
+          path: prefix-pkgconf/
+      
+      
