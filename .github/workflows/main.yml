@@ -84,9 +84,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.create_release.outputs.file_name }}
-          asset_name: ${{ steps.create_release.outputs.file_name }}
+          asset_path: ${{ steps.create_release.outputs.file_name_cairo }}
+          asset_name: ${{ steps.create_release.outputs.file_name_cairo }}
           asset_content_type: application/zip
+
       - name: Upload Release Asset
         id: upload-release-1
         uses: actions/upload-release-asset@v1
