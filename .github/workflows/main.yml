@@ -46,7 +46,7 @@ jobs:
         env:
           access_token: ${{ secrets.GITHUB_TOKEN }}
           tag_act: ${{ github.ref }}
-          REPO_NAME: ${{ github.event.repository.name }}
+          REPO_NAME: ${{ github.repository }}
         run: |
           import requests
           import os
@@ -58,7 +58,7 @@ jobs:
               "Authorization": f"token {access_token}"
           }
           url = f"https://api.github.com/repos/{repo_name}/releases/tags/{ref_tag}"
-          c = requests.get(url,headers=headers)
+          c = requests.get(url, headers=headers)
           upload_url=c.json()['upload_url']
           print(f"::set-output name=upload_url::{upload_url}")
           print(f"::set-output name=tag_name::{ref_tag[1:]}")
