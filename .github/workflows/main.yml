@@ -39,9 +39,11 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: cairo-build
+          path: cairo/
       - uses: actions/download-artifact@v3
         with:
           name: pkgconf-build
+          path: pkgconf/
       - run: pip install requests
       - name: Get Upload URL
         id: create_release
@@ -72,8 +74,8 @@ jobs:
         env:
           filename_cairo: ${{ steps.create_release.outputs.file_name_cairo }}
         run: |
-          7z a $filename_cairo prefix-cairo/
-          7z a pkgconf.zip prefix-pkgconf/
+          7z a $filename_cairo cairo/
+          7z a pkgconf.zip pkgconf/
 
       - name: Upload Release Asset
         id: upload-release
