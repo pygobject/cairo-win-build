@@ -5,6 +5,8 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  release:
+    types: [created]
   workflow_dispatch:
 
 jobs:
@@ -27,5 +29,54 @@ jobs:
         with:
           name: pkgconf-build
           path: prefix-pkgconf/
-      
-      
+
+
+  release:
+    runs-on: windows-latest
+    needs: [build]
+    if: github.event_name == 'release'
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: cairo-build
+      - run: pip install requests
+      - name: Get Upload URL
+        id: create_release
+        shell: python
+        env:
+          access_token: ${{ secrets.GITHUB_TOKEN }}
+          tag_act: ${{ github.ref }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          import requests
+          import os
+          ref_tag = os.getenv('tag_act').split('/')[-1]
+          repo_name = os.getenv('REPO_NAME', 'naveen521kk/cairo-win-build')
+          access_token = os.getenv('access_token')
+          headers = {
+              "Accept":"application/vnd.github.v3+json",
+              "Authorization": f"token {access_token}"
+          }
+          url = f"https://api.github.com/repos/{repo_name}/releases/tags/{ref_tag}"
+          c = requests.get(url,headers=headers)
+          upload_url=c.json()['upload_url']
+          print(f"::set-output name=upload_url::{upload_url}")
+          print(f"::set-output name=tag_name::{ref_tag[1:]}")
+          print(f"::set-output name=file_name::cairo-{ref_tag[1:]}.zip")
+
+      - name: Zip it
+        shell: bash
+        env:
+          filename: ${{ steps.create_release.outputs.file_name }}
+        run: 7z a $filename prefix/
+
+      - name: Upload Release Asset
+        id: upload-release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.create_release.outputs.file_name }}
+          asset_name: ${{ steps.create_release.outputs.file_name }}
+          asset_content_type: application/zip
