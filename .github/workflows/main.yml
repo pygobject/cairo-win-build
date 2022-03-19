@@ -68,7 +68,7 @@ jobs:
         shell: bash
         env:
           filename: ${{ steps.create_release.outputs.file_name }}
-        run: 7z a $filename prefix/
+        run: 7z a $filename prefix-cairo/
 
       - name: Upload Release Asset
         id: upload-release
