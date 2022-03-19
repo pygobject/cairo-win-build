@@ -66,7 +66,7 @@ jobs:
           import requests
           import os
           ref_tag = os.getenv('tag_act').split('/')[-1]
-          repo_name = os.getenv('REPO_NAME', 'naveen521kk/cairo-win-build')
+          repo_name = os.getenv('REPO_NAME', 'pygobject/cairo-win-build')
           access_token = os.getenv('access_token')
           headers = {
               "Accept":"application/vnd.github.v3+json",
