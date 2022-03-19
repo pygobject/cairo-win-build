@@ -478,7 +478,8 @@ if __name__ == "__main__":
         "--build-cairo",
         action=argparse.BooleanOptionalAction,
         help="Whether to build cairo. (default: True)",
-        dest="build_cairo"
+        dest="build_cairo",
+        default=True
     )
     op = parser.parse_args()
     if op.build_pkgconf:
