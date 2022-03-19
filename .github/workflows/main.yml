@@ -66,8 +66,8 @@ jobs:
           c = requests.get(url, headers=headers)
           upload_url=c.json()['upload_url']
           print(f"::set-output name=upload_url::{upload_url}")
-          print(f"::set-output name=tag_name::{ref_tag[1:]}")
-          print(f"::set-output name=file_name_cairo::cairo-{ref_tag[1:]}.zip")
+          print(f"::set-output name=tag_name::{ref_tag}")
+          print(f"::set-output name=file_name_cairo::cairo-{ref_tag}.zip")
 
       - name: Zip it
         shell: bash
