@@ -13,16 +13,20 @@ import textwrap
 import typing as T
 import urllib.parse
 import urllib.request
+import argparse
+
 from pathlib import Path
 
-DEFAULT_CAIRO_VERSION = "1.17.4"
-DOWNLOAD_URL_CAIRO = (
-    "https://gitlab.freedesktop.org/cairo/cairo/-/archive/{CAIRO_VERSION}/{CAIRO_VERSION}.tar.gz"
-)
+DEFAULT_CAIRO_VERSION = "1.17.6"
+DOWNLOAD_URL_CAIRO = "https://gitlab.freedesktop.org/cairo/cairo/-/archive/{CAIRO_VERSION}/{CAIRO_VERSION}.tar.gz"
+
 DEFAULT_PKGCONF_VERSION = "1.8.0"
+SHA256SUM_CAIRO = "49f88d58cf4cf2252dbf0c7e7e42d62812f7aabdee4a0c0793d509a6ce1be266"
 DOWNLOAD_URL_PKGCONF = (
     "https://distfiles.dereferenced.org/pkgconf/pkgconf-{PKGCONF_VERSION}.tar.gz"
 )
+SHA256SUM_PKGCONF = "d7b6fdb522d81c11f5a0e0a0629a9f5480809ec90e595058674c1517822dfb8c"
+DEFAULT_PREFIX = Path("C:/prefix") if sys.platform == "win32" else sys.prefix
 
 log = logging.getLogger(__name__)
 ENVIRON = os.environ.copy()
@@ -47,8 +51,8 @@ def check_sha256(filepath: Path, hash: str) -> None:
     file_sha = get_sha256_from_file(filepath)
     if get_sha256_from_file(filepath) != hash:
         raise Exception(
-            f"The downloaded file does not match the expected sha.  {filepath} was "
-            f"expected to have {hash} but it had {file_sha}"
+            f"The downloaded file does not match the expected hash.  {filepath} was "
+            f"expected to have {hash} but it has {file_sha}"
         )
     log.info("File hash matched.")
 
@@ -249,15 +253,17 @@ def build_pkgconf(
     arch: int = get_python_arch(),
     build_dir: T.Optional[Path] = None,
     check_file_hash: bool = True,
-    file_hash_sha256: str = "d7b6fdb522d81c11f5a0e0a0629a9f5480809ec90e595058674c1517822dfb8c",
+    file_hash_sha256: str = SHA256SUM_PKGCONF,
     prefix: Path = None,
     build_type: str = "static",
 ):
     log.info("Building Pkgconf")
     if build_dir is None:
         build_dir = Path(f"./build-pkgconf-v{pkgconf_version}-x{arch}")
-    if not build_dir.exists():
-        build_dir.mkdir()
+    if build_dir.exists():
+        log.info("%s exists. Skipping build.", build_dir.absolute())
+        return
+    build_dir.mkdir()
     log.info("Using %s as build directory.", build_dir.absolute())
 
     if prefix is None:
@@ -322,7 +328,7 @@ def build_cairo(
     arch: int = get_python_arch(),
     build_dir: T.Optional[Path] = None,
     check_file_hash: bool = True,
-    file_hash_sha256: str = "ed805a254f6035c43b97b57afaffe0f7ea3a8f2c785875e79e7f66d50a7f542c",
+    file_hash_sha256: str = SHA256SUM_CAIRO,
     prefix: Path = None,
     build_type: str = "static",
 ):
@@ -343,12 +349,21 @@ def build_cairo(
     msvc = setup_vs(arch)
 
     root_dir = download_and_extract(
-        DOWNLOAD_URL_CAIRO.format(CAIRO_VERSION=cairo_version),
+        DOWNLOAD_URL_CAIRO.format(
+            CAIRO_VERSION=cairo_version,
+            CAIRO_VERSION_STR=cairo_version,
+            CAIRO_VERSION_MAJOR=cairo_version.split(".")[0],
+            CAIRO_VERSION_MINOR=cairo_version.split(".")[1],
+        ),
         build_dir,
         file_hash_sha256,
         check_file_hash,
     )
-
+    subprojects_folder = Path(__file__).parent / "cairo-subprojects"
+    log.info(f"Copy {subprojects_folder} to {root_dir / 'subprojects'}")
+    if (root_dir / "subprojects").exists():
+        shutil.rmtree(root_dir / "subprojects")
+    shutil.copytree(subprojects_folder, root_dir / "subprojects")
     meson = get_meson_executable(build_dir)
 
     meson_build_dir = (root_dir / f"build-x{arch}").absolute()
@@ -357,8 +372,8 @@ def build_cairo(
 
     # Static build is broken with Meson on Windows without these CFLAGS
     # See https://gitlab.freedesktop.org/cairo/cairo/-/issues/461
-    if sys.platform == "win32":
-        ENVIRON["CFLAGS"] = "-DCAIRO_WIN32_STATIC_BUILD -DXML_STATIC"
+    # if sys.platform == "win32":
+    #    ENVIRON["CFLAGS"] = "-DCAIRO_WIN32_STATIC_BUILD -DXML_STATIC"
 
     # Just so that meson doesn't try to link with system
     # stuff.
@@ -414,5 +429,71 @@ def build_cairo(
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-    build_pkgconf()
-    build_cairo()
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--build-dir",
+        required=False,
+        type=Path,
+        help="Build directory. (default: ./build*)",
+    )
+    parser.add_argument(
+        "--prefix",
+        default=DEFAULT_PREFIX,
+        type=Path,
+        help=f"Installation prefix. (default: {DEFAULT_PREFIX})",
+    )
+    parser.add_argument(
+        "--cairo-version",
+        default=DEFAULT_CAIRO_VERSION,
+        help=f"Version of Cairo to build (default: {DEFAULT_CAIRO_VERSION})",
+        type=str,
+        dest="cairo_version",
+    )
+    parser.add_argument(
+        "--pkgconf-version",
+        default=DEFAULT_PKGCONF_VERSION,
+        help=f"Version of pkgconf to build (default: {DEFAULT_PKGCONF_VERSION})",
+        type=str,
+        dest="pkgconf_version",
+    )
+    parser.add_argument(
+        "--arch",
+        default=get_python_arch(),
+        help=f"Arch to build. (default: {get_python_arch()})",
+        type=int,
+    )
+    parser.add_argument(
+        "--check-file-hash",
+        default=True,
+        type=bool,
+        help="Check file hash for files downloaded. (default: True)",
+    )
+    parser.add_argument(
+        "--build-pkgconf",
+        default=False,
+        type=bool,
+        help="Whether to build pkgconf. (default: False)",
+    )
+    parser.add_argument(
+        "--build-cairo",
+        default=True,
+        type=bool,
+        help="Whether to build cairo. (default: True)",
+    )
+    op = parser.parse_args()
+    if op.build_pkgconf:
+        build_pkgconf(
+            pkgconf_version=op.pkgconf_version,
+            arch=op.arch,
+            build_dir=op.build_dir,
+            check_file_hash=op.check_file_hash,
+            prefix=op.prefix,
+        )
+    if op.build_cairo:
+        build_cairo(
+            cairo_version=op.cairo_version,
+            arch=op.arch,
+            build_dir=op.build_dir,
+            check_file_hash=op.check_file_hash,
+            prefix=op.prefix,
+        )

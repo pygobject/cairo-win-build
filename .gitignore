@@ -153,4 +153,7 @@ cython_debug/
 
 # All tar archives
 *.tar.*
+build-*
+prefix
+*.swp
 
