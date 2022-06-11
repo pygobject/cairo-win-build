@@ -133,7 +133,7 @@ def run_meson(meson_args, **kwargs):
 
 
 def apply_patch(patch_location: Path, cwd: Path):
-    log.info(f"Applying patch: {patch_location} (cwd: {cwd})")
+    log.info(f"Applying patch: {patch_location} (cwd: {cwd.absolute()})")
     patch_exe = DEFAULT_PATCH_EXE
     if DEFAULT_PATCH_EXE is None:
         if sys.platform != "win32":
@@ -260,7 +260,7 @@ def download_and_extract(
     if check_file_hash:
         check_sha256(tararchive, shasum)
 
-    extract_dir = Path(destdir, ".".join(tararchive.name.split(".")[:-2]))
+    extract_dir = Path(destdir, ".".join(tararchive.name.split(".")[:-2])).absolute()
     if not extract_dir.exists() or not extract_dir.is_dir():
         log.info("Extracting archive")
         with tarfile.open(tararchive) as tar:
