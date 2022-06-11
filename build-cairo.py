@@ -28,6 +28,8 @@ DOWNLOAD_URL_PKGCONF = (
 SHA256SUM_PKGCONF = "d7b6fdb522d81c11f5a0e0a0629a9f5480809ec90e595058674c1517822dfb8c"
 DEFAULT_PREFIX = Path("C:/prefix") if sys.platform == "win32" else sys.prefix
 
+DEFAULT_PATCH_EXE = shutil.which("patch")
+
 log = logging.getLogger(__name__)
 ENVIRON = os.environ.copy()
 
@@ -128,6 +130,29 @@ def get_meson_executable(build_dir) -> Path:
 def run_meson(meson_args, **kwargs):
     log.info("Running meson with arguments: %s", " ".join(meson_args))
     run_command(meson_args, **kwargs)
+
+
+def apply_patch(patch_location: Path, cwd: Path):
+    log.info(f"Applying patch: {patch_location} (cwd: {cwd})")
+    patch_exe = DEFAULT_PATCH_EXE
+    if DEFAULT_PATCH_EXE is None:
+        if sys.platform != "win32":
+            raise Exception("'patch' executable not found")
+        log.warn("'patch.exe' not found in PATH, trying default from msys2")
+        # by default msys2 is installing in C:\msys64\
+        # so try `C:\msys64\usr\bin\patch.exe`
+        patch_exe = r"C:\msys64\usr\bin\patch.exe"
+        # fail if this doesn't exists, more elegant soln exists but well...
+        assert os.path.exists(patch_exe), "Can't find 'patch.exe'"
+    run_command(
+        [
+            patch_exe,
+            "-p1",
+            "-i",
+            os.fspath(patch_location),
+        ],
+        cwd=cwd,
+    )
 
 
 # Copied from
@@ -364,6 +389,16 @@ def build_cairo(
     if (root_dir / "subprojects").exists():
         shutil.rmtree(root_dir / "subprojects")
     shutil.copytree(subprojects_folder, root_dir / "subprojects")
+
+    # Add patch to fix dwrite backend: to be removed in future version
+    # see https://gitlab.freedesktop.org/cairo/cairo/-/merge_requests/302
+
+    log.info("Patching Cairo sources...")
+    apply_patch(
+        patch_location=Path(__file__).parent / "302.patch",
+        cwd=root_dir,
+    )
+
     meson = get_meson_executable(build_dir)
 
     meson_build_dir = (root_dir / f"build-x{arch}").absolute()
