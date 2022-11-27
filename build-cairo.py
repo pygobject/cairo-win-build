@@ -1,4 +1,3 @@
-import hashlib
 import json
 import logging
 import os
@@ -7,21 +6,13 @@ import shutil
 import struct
 import subprocess
 import sys
-import tarfile
 import tempfile
 import textwrap
 import typing as T
-import urllib.parse
-import urllib.request
 import argparse
 
 from pathlib import Path
 
-DEFAULT_PKGCONF_VERSION = "1.8.0"
-DOWNLOAD_URL_PKGCONF = (
-    "https://distfiles.dereferenced.org/pkgconf/pkgconf-{PKGCONF_VERSION}.tar.gz"
-)
-SHA256SUM_PKGCONF = "d7b6fdb522d81c11f5a0e0a0629a9f5480809ec90e595058674c1517822dfb8c"
 DEFAULT_PREFIX = Path("C:/prefix") if sys.platform == "win32" else sys.prefix
 
 log = logging.getLogger(__name__)
@@ -30,27 +21,6 @@ ENVIRON = os.environ.copy()
 
 def get_python_arch() -> int:
     return struct.calcsize("P") * 8
-
-
-def check_sha256(filepath: Path, hash: str) -> None:
-    def get_sha256_from_file(file_path: Path) -> str:
-        sha256 = hashlib.sha256()
-        BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
-        with open(file_path, "rb") as f:
-            while True:
-                data = f.read(BUF_SIZE)
-                if not data:
-                    break
-                sha256.update(data)
-        return sha256.hexdigest()
-
-    file_sha = get_sha256_from_file(filepath)
-    if get_sha256_from_file(filepath) != hash:
-        raise Exception(
-            f"The downloaded file does not match the expected hash.  {filepath} was "
-            f"expected to have {hash} but it has {file_sha}"
-        )
-    log.info("File hash matched.")
 
 
 def run_command(
@@ -215,46 +185,16 @@ def setup_vs(arch: int = 64) -> bool:
     return True
 
 
-def download_and_extract(
-    url: str, destdir: Path, shasum: str, check_file_hash: bool = True
-):
-    tararchive = Path(
-        destdir, urllib.parse.urlsplit(url).path.split("/")[-1]
-    ).absolute()
-    if not tararchive.exists():
-        log.info("Downloading %s to %s", url, tararchive)
-        urllib.request.urlretrieve(
-            url,
-            tararchive,
-        )
-    if check_file_hash:
-        check_sha256(tararchive, shasum)
-
-    extract_dir = Path(destdir, ".".join(tararchive.name.split(".")[:-2])).absolute()
-    if not extract_dir.exists() or not extract_dir.is_dir():
-        log.info("Extracting archive")
-        with tarfile.open(tararchive) as tar:
-            tar.extractall(destdir)
-        if not extract_dir.exists():
-            shutil.move(
-                list(Path(destdir).glob("*-*-*"))[0],
-                extract_dir,
-            )
-    return extract_dir
-
 
 def build_pkgconf(
-    pkgconf_version: str = DEFAULT_PKGCONF_VERSION,
     arch: int = get_python_arch(),
     build_dir: T.Optional[Path] = None,
-    check_file_hash: bool = True,
-    file_hash_sha256: str = SHA256SUM_PKGCONF,
     prefix: Path = None,
     build_type: str = "static",
 ):
     log.info("Building Pkgconf")
     if build_dir is None:
-        build_dir = Path(f"./build-pkgconf-v{pkgconf_version}-x{arch}")
+        build_dir = Path(f"./build-pkgconf-x{arch}")
     if build_dir.exists():
         log.info("%s exists. Skipping build.", build_dir.absolute())
         return
@@ -270,12 +210,7 @@ def build_pkgconf(
 
     setup_vs(arch)
 
-    root_dir = download_and_extract(
-        DOWNLOAD_URL_PKGCONF.format(PKGCONF_VERSION=pkgconf_version),
-        build_dir,
-        file_hash_sha256,
-        check_file_hash,
-    )
+    root_dir = Path(__file__).parent / "pkgconf-build"
 
     meson = get_meson_executable(build_dir)
 
@@ -291,8 +226,6 @@ def build_pkgconf(
             os.fspath(meson_build_dir),
             f"--default-library={build_type}",
             f"--prefix={prefix}",
-            "--buildtype=release",
-            "-Dtests=false",  # We don't need tests
         ],
         cwd=root_dir,
         env=ENVIRON,
@@ -415,23 +348,10 @@ if __name__ == "__main__":
         help=f"Installation prefix. (default: {DEFAULT_PREFIX})",
     )
     parser.add_argument(
-        "--pkgconf-version",
-        default=DEFAULT_PKGCONF_VERSION,
-        help=f"Version of pkgconf to build (default: {DEFAULT_PKGCONF_VERSION})",
-        type=str,
-        dest="pkgconf_version",
-    )
-    parser.add_argument(
         "--arch",
         default=get_python_arch(),
         help=f"Arch to build. (default: {get_python_arch()})",
         type=int,
-    )
-    parser.add_argument(
-        "--check-file-hash",
-        default=True,
-        type=bool,
-        help="Check file hash for files downloaded. (default: True)",
     )
     parser.add_argument(
         "--build-pkgconf",
@@ -449,10 +369,8 @@ if __name__ == "__main__":
     op = parser.parse_args()
     if op.build_pkgconf:
         build_pkgconf(
-            pkgconf_version=op.pkgconf_version,
             arch=op.arch,
             build_dir=op.build_dir,
-            check_file_hash=op.check_file_hash,
             prefix=op.prefix.absolute(),
         )
     if op.build_cairo:

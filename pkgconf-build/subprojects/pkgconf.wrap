@@ -1,0 +1,5 @@
+[wrap-file]
+directory=pkgconf-1.8.0
+source_url=https://distfiles.dereferenced.org/pkgconf/pkgconf-1.8.0.tar.gz
+source_filename=pkgconf-1.8.0.tar.gz
+source_hash=d7b6fdb522d81c11f5a0e0a0629a9f5480809ec90e595058674c1517822dfb8c
