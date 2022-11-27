@@ -423,6 +423,7 @@ def build_cairo(
             f"--default-library={build_type}",
             f"--prefix={prefix}",
             "--buildtype=release",
+            "--wrap-mode=forcefallback",
             "-Dtee=enabled",  # this is needed for pycairo tests to pass
             "-Dglib=disabled",  # doesn't build statically in Windows
             "-Dtests=disabled",  # We don't need tests
