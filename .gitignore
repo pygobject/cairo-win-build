@@ -157,3 +157,7 @@ build-*
 prefix
 *.swp
 
+
+cairo-build/subprojects/*
+!cairo-build/subprojects/*.wrap
+!cairo-build/subprojects/packagefiles
