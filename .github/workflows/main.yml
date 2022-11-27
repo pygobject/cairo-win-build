@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build-x86:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v3
@@ -23,12 +23,28 @@ jobs:
         with:
           name: cairo-build-x86
           path: prefix-cairo-32/
+
+  build-x64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '3.10'
       - name: Build Cairo x64
         run: python build-cairo.py --prefix="./prefix-cairo-64" --build-cairo --no-build-pkgconf --arch=64
       - uses: actions/upload-artifact@v3
         with:
           name: cairo-build-x64
           path: prefix-cairo-64/
+
+  build-pkgconf:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '3.10'
       - name: Build pkgconf
         run: python build-cairo.py --prefix="./prefix-pkgconf" --build-pkgconf --no-build-cairo
       - uses: actions/upload-artifact@v3
@@ -39,7 +55,7 @@ jobs:
 
   release:
     runs-on: windows-latest
-    needs: [build]
+    needs: [build-x86, build-x64, build-pkgconf]
     if: github.event_name == 'release'
     steps:
       - uses: actions/download-artifact@v3
