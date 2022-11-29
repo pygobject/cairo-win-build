@@ -35,58 +35,6 @@ def run_command(
     return subprocess.run(args, **kwargs)
 
 
-def get_meson_executable(build_dir) -> Path:
-    def create_venv_and_install_meson(venv_location: Path) -> None:
-        log.info("Creating a venv at %s", venv_location.absolute())
-        run_command(
-            [
-                sys.executable,
-                "-m",
-                "venv",
-                os.fspath(venv_location),
-            ]
-        )
-        log.info("Installing meson and ninja using pip")
-        if (venv_location / "Scripts").is_dir():
-            python = venv_location / "Scripts" / "python"
-        else:
-            python = venv_location / "bin" / "python"
-        run_command(
-            [
-                os.fspath(python),
-                "-m",
-                "pip",
-                "install",
-                "ninja",
-                "meson",
-            ],
-            env=ENVIRON,
-        )
-
-    log.info("Checking if meson and ninja are installed")
-    meson = shutil.which("meson")
-    ninja = shutil.which("ninja")
-    if meson is None or ninja is None:
-        log.warning("Meson or Ninja isn't installed. Installing using an Venv.")
-        venv_location = build_dir / "meson_venv"
-        ENVIRON[
-            "PATH"
-        ] = f"{(venv_location / 'Scripts').absolute()}{os.pathsep}{(venv_location / 'bin').absolute()}{os.pathsep}{ENVIRON['PATH']}"  # noqa
-        if not venv_location.exists():
-            create_venv_and_install_meson(venv_location)
-        else:
-            log.info("Venv already exists. Checking if it is usable.")
-            ninja = shutil.which("ninja", path=ENVIRON["PATH"])
-            meson = shutil.which("meson", path=ENVIRON["PATH"])
-            if meson is None or ninja is None:
-                log.info("Creating new venv.")
-                create_venv_and_install_meson(venv_location)
-    ninja = shutil.which("ninja", path=ENVIRON["PATH"])
-    meson = shutil.which("meson", path=ENVIRON["PATH"])
-    log.info("Found meson at %s", meson)
-    log.info("Found ninja at %s", ninja)
-    return meson
-
 
 def run_meson(meson_args, **kwargs):
     log.info("Running meson with arguments: %s", " ".join(meson_args))
@@ -117,8 +65,6 @@ def build_pkgconf(
 
     root_dir = Path(__file__).parent / "pkgconf-build"
 
-    meson = get_meson_executable(build_dir)
-
     meson_build_dir = (root_dir / f"build-x{arch}").absolute()
     if meson_build_dir.exists():
         shutil.rmtree(meson_build_dir)
@@ -126,7 +72,7 @@ def build_pkgconf(
     log.info("Configuring using Meson...")
     run_meson(
         [
-            meson,
+            "meson",
             "setup",
             os.fspath(meson_build_dir),
             f"--default-library={build_type}",
@@ -138,14 +84,14 @@ def build_pkgconf(
 
     log.info("Compiling now...")
     run_meson(
-        [meson, "compile", "-C", os.fspath(meson_build_dir)],
+        ["meson", "compile", "-C", os.fspath(meson_build_dir)],
         cwd=root_dir,
     )
 
     log.info("Installing Pkgconf...")
     run_meson(
         [
-            meson,
+            "meson",
             "install",
             "--no-rebuild",
             "-C",
@@ -176,8 +122,6 @@ def build_cairo(
             prefix = Path(f"~/build-x{arch}")
     log.info("Using %s as prefix", prefix)
 
-    meson = get_meson_executable(build_dir)
-
     root_dir = Path(__file__).parent / "cairo-build"
     meson_build_dir = (root_dir / f"build-x{arch}").absolute()
     if meson_build_dir.exists():
@@ -195,7 +139,7 @@ def build_cairo(
 
     run_meson(
         [
-            meson,
+            "meson",
             "setup",
             os.fspath(meson_build_dir),
             f"--default-library={build_type}",
@@ -207,13 +151,13 @@ def build_cairo(
 
     log.info("Compiling now...")
     run_meson(
-        [meson, "compile", "-C", os.fspath(meson_build_dir)]
+        ["meson", "compile", "-C", os.fspath(meson_build_dir)]
     )
 
     log.info("Installing Cairo.")
     run_meson(
         [
-            meson,
+            "meson",
             "install",
             "--no-rebuild",
             "-C",
