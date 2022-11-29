@@ -41,67 +41,6 @@ def run_meson(meson_args, **kwargs):
     run_command(meson_args, **kwargs)
 
 
-def build_pkgconf(
-    arch: int = get_python_arch(),
-    build_dir: T.Optional[Path] = None,
-    prefix: Path = None,
-    build_type: str = "static",
-):
-    log.info("Building Pkgconf")
-    if build_dir is None:
-        build_dir = Path(f"./build-pkgconf-x{arch}")
-    if build_dir.exists():
-        log.info("%s exists. Skipping build.", build_dir.absolute())
-        return
-    build_dir.mkdir()
-    log.info("Using %s as build directory.", build_dir.absolute())
-
-    if prefix is None:
-        if sys.platform == "win32":
-            prefix = Path(rf"C:\build-x{arch}")
-        else:
-            prefix = Path(f"~/build-x{arch}")
-    log.info("Using %s as prefix", prefix)
-
-    root_dir = Path(__file__).parent / "pkgconf-build"
-
-    meson_build_dir = (root_dir / f"build-x{arch}").absolute()
-    if meson_build_dir.exists():
-        shutil.rmtree(meson_build_dir)
-
-    log.info("Configuring using Meson...")
-    run_meson(
-        [
-            "meson",
-            "setup",
-            os.fspath(meson_build_dir),
-            f"--default-library={build_type}",
-            f"--prefix={prefix}",
-        ],
-        cwd=root_dir,
-        env=ENVIRON,
-    )
-
-    log.info("Compiling now...")
-    run_meson(
-        ["meson", "compile", "-C", os.fspath(meson_build_dir)],
-        cwd=root_dir,
-    )
-
-    log.info("Installing Pkgconf...")
-    run_meson(
-        [
-            "meson",
-            "install",
-            "--no-rebuild",
-            "-C",
-            os.fspath(meson_build_dir),
-        ]
-    )
-
-    log.info("Sucessfully build Pkgconf")
-
-
 def build_cairo(
     arch: int = get_python_arch(),
     build_dir: T.Optional[Path] = None,
@@ -200,29 +139,9 @@ if __name__ == "__main__":
         help=f"Arch to build. (default: {get_python_arch()})",
         type=int,
     )
-    parser.add_argument(
-        "--build-pkgconf",
-        action=argparse.BooleanOptionalAction,
-        help="Whether to build pkgconf. (default: False)",
-        dest="build_pkgconf"
-    )
-    parser.add_argument(
-        "--build-cairo",
-        action=argparse.BooleanOptionalAction,
-        help="Whether to build cairo. (default: True)",
-        dest="build_cairo",
-        default=True
-    )
     op = parser.parse_args()
-    if op.build_pkgconf:
-        build_pkgconf(
-            arch=op.arch,
-            build_dir=op.build_dir,
-            prefix=op.prefix.absolute(),
-        )
-    if op.build_cairo:
-        build_cairo(
-            arch=op.arch,
-            build_dir=op.build_dir,
-            prefix=op.prefix.absolute(),
-        )
+    build_cairo(
+        arch=op.arch,
+        build_dir=op.build_dir,
+        prefix=op.prefix.absolute(),
+    )
