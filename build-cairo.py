@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import re
@@ -6,8 +5,6 @@ import shutil
 import struct
 import subprocess
 import sys
-import tempfile
-import textwrap
 import typing as T
 import argparse
 
@@ -95,96 +92,6 @@ def run_meson(meson_args, **kwargs):
     log.info("Running meson with arguments: %s", " ".join(meson_args))
     run_command(meson_args, **kwargs)
 
-# Copied from
-# https://github.com/mesonbuild/meson/blob/928078982c8643bffd95a8da06a1b4494fe87e2b/mesonbuild/mesonlib/vsenv.py
-def setup_vs(arch: int = 64) -> bool:
-    bat_template = textwrap.dedent(
-        """@ECHO OFF
-        call "{}"
-        ECHO {}
-        SET
-    """
-    )
-    if not sys.platform == "win32":
-        return False
-    if os.environ.get("OSTYPE") == "cygwin":
-        return False
-    if "Visual Studio" in os.environ["PATH"]:
-        return False
-    # VSINSTALL is set when running setvars from a Visual Studio installation
-    # Tested with Visual Studio 2012 and 2017
-    if "VSINSTALLDIR" in os.environ:
-        return False
-    # Check explicitly for cl when on Windows
-    if "gcc" in sys.version.lower():
-        if shutil.which("cl.exe"):
-            return False
-        if shutil.which("cc"):
-            return False
-        if shutil.which("gcc"):
-            return False
-        if shutil.which("clang"):
-            return False
-        if shutil.which("clang-cl"):
-            return False
-
-    root = os.environ.get("ProgramFiles(x86)") or os.environ.get("ProgramFiles")
-    bat_locator_bin = Path(root, "Microsoft Visual Studio/Installer/vswhere.exe")
-    if not bat_locator_bin.exists():
-        raise Exception(f"Could not find {bat_locator_bin}")
-    bat_json = subprocess.check_output(
-        [
-            str(bat_locator_bin),
-            "-latest",
-            "-prerelease",
-            "-requiresAny",
-            "-requires",
-            "Microsoft.VisualStudio.Component.VC.Tools.x86.x64",
-            "-products",
-            "*",
-            "-utf8",
-            "-format",
-            "json",
-        ]
-    )
-    bat_info = json.loads(bat_json)
-    if not bat_info:
-        # VS installer instelled but not VS itself maybe?
-        raise Exception("Could not parse vswhere.exe output")
-    bat_root = Path(bat_info[0]["installationPath"])
-    bat_path = bat_root / f"VC/Auxiliary/Build/vcvars{arch}.bat"
-    if not bat_path.exists():
-        raise Exception(f"Could not find {bat_path}")
-
-    bat_separator = "---SPLIT---"
-    bat_contents = bat_template.format(bat_path, bat_separator)
-    bat_file = tempfile.NamedTemporaryFile(
-        "w", suffix=".bat", encoding="utf-8", delete=False
-    )
-    bat_file.write(bat_contents)
-    bat_file.flush()
-    bat_file.close()
-    bat_output = subprocess.check_output(
-        bat_file.name,
-        universal_newlines=True,
-    )
-    bat_lines = bat_output.split("\n")
-    bat_separator_seen = False
-    for bat_line in bat_lines:
-        if bat_line == bat_separator:
-            bat_separator_seen = True
-            continue
-        if not bat_separator_seen:
-            continue
-        if not bat_line:
-            continue
-        k, v = bat_line.split("=", 1)
-        if k.lower() == "path":
-            k = "PATH"
-        ENVIRON[k] = v
-    return True
-
-
 
 def build_pkgconf(
     arch: int = get_python_arch(),
@@ -207,8 +114,6 @@ def build_pkgconf(
         else:
             prefix = Path(f"~/build-x{arch}")
     log.info("Using %s as prefix", prefix)
-
-    setup_vs(arch)
 
     root_dir = Path(__file__).parent / "pkgconf-build"
 
@@ -271,8 +176,6 @@ def build_cairo(
             prefix = Path(f"~/build-x{arch}")
     log.info("Using %s as prefix", prefix)
 
-    msvc = setup_vs(arch)
-
     meson = get_meson_executable(build_dir)
 
     root_dir = Path(__file__).parent / "cairo-build"
@@ -322,7 +225,7 @@ def build_cairo(
     # libcairo.a but setuptools doens't know about it.
     # So, we are copying every lib*.a to *.lib so that
     # setuptools can use it.
-    if build_type == "static" and msvc:
+    if build_type == "static":
         libreg = re.compile(r"lib(?P<name>\S*)\.a")
         libdir = prefix / "lib"
         for lib in libdir.glob("lib*.a"):
