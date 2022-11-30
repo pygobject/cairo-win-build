@@ -87,6 +87,8 @@ jobs:
 
 
   release:
+    permissions:
+      contents: write
     runs-on: windows-latest
     needs: [build-x86, build-x64, build-pkgconf]
     if: github.event_name == 'release'
