@@ -17,8 +17,19 @@ jobs:
       - uses: actions/setup-python@v3
         with:
           python-version: '3.10'
+          cache: 'pip'
+      - name: Install deps
+        run: pip install -r requirements.txt
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch : x86
       - name: Build Cairo x86
-        run: python build-cairo.py --prefix="./prefix-cairo-32" --build-cairo --no-build-pkgconf --arch=32
+        run: |
+          cd cairo-build
+          meson setup build-cairo-x86 `
+            --prefix=$env:GITHUB_WORKSPACE/prefix-cairo-32
+          meson compile -C build-cairo-x86
+          meson install -C build-cairo-x86
       - uses: actions/upload-artifact@v3
         with:
           name: cairo-build-x86
@@ -31,8 +42,19 @@ jobs:
       - uses: actions/setup-python@v3
         with:
           python-version: '3.10'
+          cache: 'pip'
+      - name: Install deps
+        run: pip install -r requirements.txt
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch : x64
       - name: Build Cairo x64
-        run: python build-cairo.py --prefix="./prefix-cairo-64" --build-cairo --no-build-pkgconf --arch=64
+        run: |
+          cd cairo-build
+          meson setup build-cairo-x64 `
+            --prefix=$env:GITHUB_WORKSPACE/prefix-cairo-64
+          meson compile -C build-cairo-x64
+          meson install -C build-cairo-x64
       - uses: actions/upload-artifact@v3
         with:
           name: cairo-build-x64
@@ -45,8 +67,19 @@ jobs:
       - uses: actions/setup-python@v3
         with:
           python-version: '3.10'
+          cache: 'pip'
+      - name: Install deps
+        run: pip install -r requirements.txt
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch : x64
       - name: Build pkgconf
-        run: python build-cairo.py --prefix="./prefix-pkgconf" --build-pkgconf --no-build-cairo
+        run: |
+          cd pkgconf-build
+          meson setup build-x64 `
+            --prefix=$env:GITHUB_WORKSPACE/prefix-pkgconf
+          meson compile -C build-x64
+          meson install -C build-x64
       - uses: actions/upload-artifact@v3
         with:
           name: pkgconf-build
