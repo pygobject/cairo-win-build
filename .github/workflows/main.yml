@@ -60,6 +60,35 @@ jobs:
           name: cairo-build-x64
           path: prefix-cairo-64/
 
+  build-arm64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+      - name: Install deps
+        run: pip install -r requirements.txt
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch : amd64_arm64
+      - name: Build Cairo arm64
+        run: |
+          cd cairo-build
+          meson setup build-cairo-arm64 `
+            -Dpixman:a64-neon=disabled `
+            -Dpixman:iwmmxt=disabled `
+            -Dpixman:mmx=disabled `
+            --prefix=$env:GITHUB_WORKSPACE/prefix-cairo-arm64 `
+            --cross-file ../.ci/cross_amd64_arm64.txt
+          meson compile -C build-cairo-arm64
+          meson install -C build-cairo-arm64
+      - uses: actions/upload-artifact@v3
+        with:
+          name: cairo-build-arm64
+          path: prefix-cairo-arm64/
+
   build-pkgconf:
     runs-on: windows-latest
     steps:
@@ -90,7 +119,7 @@ jobs:
     permissions:
       contents: write
     runs-on: windows-latest
-    needs: [build-x86, build-x64, build-pkgconf]
+    needs: [build-x86, build-x64, build-arm64, build-pkgconf]
     if: github.event_name == 'release'
     steps:
       - uses: actions/download-artifact@v3
@@ -101,6 +130,10 @@ jobs:
         with:
           name: cairo-build-x64
           path: cairo-x64/
+      - uses: actions/download-artifact@v3
+        with:
+          name: cairo-build-arm64
+          path: cairo-arm64/
       - uses: actions/download-artifact@v3
         with:
           name: pkgconf-build
@@ -128,41 +161,50 @@ jobs:
           upload_url=c.json()['upload_url']
           print(f"::set-output name=upload_url::{upload_url}")
           print(f"::set-output name=tag_name::{ref_tag}")
-          print(f"::set-output name=file_name_cairo_32::cairo-{ref_tag}-32.zip")
-          print(f"::set-output name=file_name_cairo_64::cairo-{ref_tag}-64.zip")
+          print(f"::set-output name=file_name_cairo_x86::cairo-{ref_tag}-x86.zip")
+          print(f"::set-output name=file_name_cairo_x64::cairo-{ref_tag}-x64.zip")
+          print(f"::set-output name=file_name_cairo_arm64::cairo-{ref_tag}-arm64.zip")
 
       - name: Zip it
         shell: bash
         env:
-          file_name_cairo_32: ${{ steps.create_release.outputs.file_name_cairo_32 }}
-          file_name_cairo_64: ${{ steps.create_release.outputs.file_name_cairo_64 }}
+          file_name_cairo_x86: ${{ steps.create_release.outputs.file_name_cairo_x86 }}
+          file_name_cairo_x64: ${{ steps.create_release.outputs.file_name_cairo_x64 }}
+          file_name_cairo_arm64: ${{ steps.create_release.outputs.file_name_cairo_arm64 }}
         run: |
-          7z a $file_name_cairo_32 cairo-x86/*
-          7z a $file_name_cairo_64 cairo-x64/*
+          7z a $file_name_cairo_x86 cairo-x86/*
+          7z a $file_name_cairo_x64 cairo-x64/*
+          7z a $file_name_cairo_arm64 cairo-arm64/*
           7z a pkgconf.zip pkgconf/
 
-      - name: Upload Release Asset
-        id: upload-release
+      - name: Upload Release Asset (cairo-x86)
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.create_release.outputs.file_name_cairo_32 }}
-          asset_name: ${{ steps.create_release.outputs.file_name_cairo_32 }}
+          asset_path: ${{ steps.create_release.outputs.file_name_cairo_x86 }}
+          asset_name: ${{ steps.create_release.outputs.file_name_cairo_x86 }}
           asset_content_type: application/zip
-      - name: Upload Release Asset
-        id: upload-release-64
+      - name: Upload Release Asset (cairo-x64)
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.create_release.outputs.file_name_cairo_64 }}
-          asset_name: ${{ steps.create_release.outputs.file_name_cairo_64 }}
+          asset_path: ${{ steps.create_release.outputs.file_name_cairo_x64 }}
+          asset_name: ${{ steps.create_release.outputs.file_name_cairo_x64 }}
           asset_content_type: application/zip
-      - name: Upload Release Asset
-        id: upload-release-1
+      - name: Upload Release Asset (cairo-arm64)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.create_release.outputs.file_name_cairo_arm64 }}
+          asset_name: ${{ steps.create_release.outputs.file_name_cairo_arm64 }}
+          asset_content_type: application/zip
+      - name: Upload Release Asset (pkgconf)
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
