@@ -4,7 +4,7 @@
 [pycairo](https://github.com/pygobject/pycairo) Python bindings for the
 [cairo graphics library](https://www.cairographics.org/). It provides a static
 Windows build of cairo including all its dependencies (zlib, pixman, freetype,
-expat, libpng) which pycairo uses for its binary Windows wheels.
+libpng) which pycairo uses for its binary Windows wheels.
 
 In addition to cairo it also provides a static build of
 [pkgconf](https://github.com/pkgconf/pkgconf) which is required by pycairo
