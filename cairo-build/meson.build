@@ -4,7 +4,7 @@ project('cairo-build', 'c', 'cpp',
         'buildtype=release',
         'wrap_mode=nopromote',
         'force_fallback_for=freetype2,libpng,pixman,zlib',
-        'cairo:tee=enabled', # this is needed for pycairo tests to pass
+        'cairo:freetype=enabled',
         'cairo:glib=disabled', # doesn't build statically in Windows
         'cairo:tests=disabled', # We don't need tests
     ],
