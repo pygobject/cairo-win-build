@@ -14,7 +14,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           cache: 'pip'
@@ -30,7 +30,7 @@ jobs:
             --prefix=$env:GITHUB_WORKSPACE/prefix-cairo-32
           meson compile -C build-cairo-x86
           meson install -C build-cairo-x86
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: cairo-build-x86
           path: prefix-cairo-32/
@@ -39,7 +39,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           cache: 'pip'
@@ -55,7 +55,7 @@ jobs:
             --prefix=$env:GITHUB_WORKSPACE/prefix-cairo-64
           meson compile -C build-cairo-x64
           meson install -C build-cairo-x64
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: cairo-build-x64
           path: prefix-cairo-64/
@@ -64,7 +64,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           cache: 'pip'
@@ -84,7 +84,7 @@ jobs:
             --cross-file ../.ci/cross_amd64_arm64.txt
           meson compile -C build-cairo-arm64
           meson install -C build-cairo-arm64
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: cairo-build-arm64
           path: prefix-cairo-arm64/
@@ -93,7 +93,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
           cache: 'pip'
@@ -109,7 +109,7 @@ jobs:
             --prefix=$env:GITHUB_WORKSPACE/prefix-pkgconf
           meson compile -C build-x64
           meson install -C build-x64
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: pkgconf-build
           path: prefix-pkgconf/
@@ -122,19 +122,19 @@ jobs:
     needs: [build-x86, build-x64, build-arm64, build-pkgconf]
     if: github.event_name == 'release'
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: cairo-build-x86
           path: cairo-x86/
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: cairo-build-x64
           path: cairo-x64/
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: cairo-build-arm64
           path: cairo-arm64/
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: pkgconf-build
           path: pkgconf/
