@@ -1,5 +1,5 @@
 [wrap-file]
-directory=cairo-1.18.0
-source_url=https://gitlab.freedesktop.org/cairo/cairo/-/archive/1.18.0/cairo-1.18.0.tar.gz
-source_filename=cairo-1.18.0.tar.gz
-source_hash=39a78afdc33a435c0f2ab53a5ec2a693c3c9b6d2ec9783ceecb2b94d54d942b0
+directory=cairo-1.18.2
+source_url=https://gitlab.freedesktop.org/cairo/cairo/-/archive/1.18.2/cairo-1.18.2.tar.gz
+source_filename=cairo-1.18.2.tar.gz
+source_hash=7bbfb469b89b1f60584b4f39a1366789b7625a5796905870e108b6c0e8ca8216
