@@ -78,7 +78,6 @@ jobs:
           cd cairo-build
           meson setup build-cairo-arm64 `
             -Dpixman:a64-neon=disabled `
-            -Dpixman:iwmmxt=disabled `
             -Dpixman:mmx=disabled `
             --prefix=$env:GITHUB_WORKSPACE/prefix-cairo-arm64 `
             --cross-file ../.ci/cross_amd64_arm64.txt
