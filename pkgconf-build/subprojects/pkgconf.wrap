@@ -1,10 +1,10 @@
 [wrap-file]
-directory = pkgconf-3.0.5
-source_url = https://distfiles.ariadne.space/pkgconf/pkgconf-3.0.5.tar.xz
-source_filename = pkgconf-3.0.5.tar.xz
-source_hash = 3acd3a8a3cce65a8d620321855d92fb602e026cbe8e13ee36bdec58483b59ace
-source_fallback_url = https://wrapdb.mesonbuild.com/v2/pkgconf_3.0.5-1/get_source/pkgconf-3.0.5.tar.xz
-wrapdb_version = 3.0.5-1
+directory = pkgconf-3.0.7
+source_url = https://distfiles.ariadne.space/pkgconf/pkgconf-3.0.7.tar.xz
+source_filename = pkgconf-3.0.7.tar.xz
+source_hash = c926ff491cbd9a331a589160811bd97ab1749b4d5198a519338f2cdfabe6940a
+source_fallback_url = https://wrapdb.mesonbuild.com/v2/pkgconf_3.0.7-1/get_source/pkgconf-3.0.7.tar.xz
+wrapdb_version = 3.0.7-1
 
 [provide]
 dependency_names = libpkgconf
