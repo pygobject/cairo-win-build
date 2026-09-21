@@ -144,78 +144,25 @@ jobs:
         with:
           name: pkgconf-build
           path: pkgconf/
-      - run: pip install requests
-      - name: Get Upload URL
-        id: create_release
-        shell: python
-        env:
-          access_token: ${{ secrets.GITHUB_TOKEN }}
-          tag_act: ${{ github.ref }}
-          REPO_NAME: ${{ github.repository }}
-        run: |
-          import requests
-          import os
-          ref_tag = os.getenv('tag_act').split('/')[-1]
-          repo_name = os.getenv('REPO_NAME', 'pygobject/cairo-win-build')
-          access_token = os.getenv('access_token')
-          headers = {
-              "Accept":"application/vnd.github.v3+json",
-              "Authorization": f"token {access_token}"
-          }
-          url = f"https://api.github.com/repos/{repo_name}/releases/tags/{ref_tag}"
-          c = requests.get(url, headers=headers)
-          upload_url=c.json()['upload_url']
-          print(f"::set-output name=upload_url::{upload_url}")
-          print(f"::set-output name=tag_name::{ref_tag}")
-          print(f"::set-output name=file_name_cairo_x86::cairo-{ref_tag}-x86.zip")
-          print(f"::set-output name=file_name_cairo_x64::cairo-{ref_tag}-x64.zip")
-          print(f"::set-output name=file_name_cairo_arm64::cairo-{ref_tag}-arm64.zip")
-
       - name: Zip it
         shell: bash
         env:
-          file_name_cairo_x86: ${{ steps.create_release.outputs.file_name_cairo_x86 }}
-          file_name_cairo_x64: ${{ steps.create_release.outputs.file_name_cairo_x64 }}
-          file_name_cairo_arm64: ${{ steps.create_release.outputs.file_name_cairo_arm64 }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
-          7z a $file_name_cairo_x86 cairo-x86/*
-          7z a $file_name_cairo_x64 cairo-x64/*
-          7z a $file_name_cairo_arm64 cairo-arm64/*
+          7z a "cairo-$RELEASE_TAG-x86.zip" cairo-x86/*
+          7z a "cairo-$RELEASE_TAG-x64.zip" cairo-x64/*
+          7z a "cairo-$RELEASE_TAG-arm64.zip" cairo-arm64/*
           7z a pkgconf.zip pkgconf/
 
-      - name: Upload Release Asset (cairo-x86)
-        uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5 # v1.0.2
+      - name: Upload release assets
+        shell: bash
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.create_release.outputs.file_name_cairo_x86 }}
-          asset_name: ${{ steps.create_release.outputs.file_name_cairo_x86 }}
-          asset_content_type: application/zip
-      - name: Upload Release Asset (cairo-x64)
-        uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5 # v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.create_release.outputs.file_name_cairo_x64 }}
-          asset_name: ${{ steps.create_release.outputs.file_name_cairo_x64 }}
-          asset_content_type: application/zip
-      - name: Upload Release Asset (cairo-arm64)
-        uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5 # v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.create_release.outputs.file_name_cairo_arm64 }}
-          asset_name: ${{ steps.create_release.outputs.file_name_cairo_arm64 }}
-          asset_content_type: application/zip
-      - name: Upload Release Asset (pkgconf)
-        uses: actions/upload-release-asset@e8f9f06c4b078e705bd2ea027f0926603fc9b4d5 # v1.0.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: pkgconf.zip
-          asset_name: pkgconf.zip
-          asset_content_type: application/zip
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          gh release upload "$RELEASE_TAG" \
+            "cairo-$RELEASE_TAG-x86.zip" \
+            "cairo-$RELEASE_TAG-x64.zip" \
+            "cairo-$RELEASE_TAG-arm64.zip" \
+            pkgconf.zip
